@@ -4,6 +4,8 @@ const he = require("he");
 
 const { jobdescription } = require("./getjobDescription");
 
+const fetchHeaders = require("../../joshi_sir_code/service/fetchHeaders");
+
 const fetchCompanyIdFromUrl = async (headers, companyUrl) => {
   try {
     const url = companyUrl;
@@ -53,11 +55,19 @@ function wait(milliseconds) {
 
 const get_jobs = async (req, res) => {
   try {
-    const { job_title, location, jobposition, session_cookie, joblisting } =
+    const { job_title, location, jobposition, cookie, joblisting } =
       req.body;
     // const headers = await fetchHeaders(session_cookie);
 
     // console.log("Headers : " +headers.headers.Cookie);
+
+    // const cookie = "AQEDATezmRUAvXpiAAABjOokMlMAAAGNDjC2U04AWusjRjy-TwPfgOcNpId5pXrvpM5h_yWxwgUIA4XR_6eEQAcL7J7rTHwDVfcQx6lVKVV0hKEA-KJCOJDIgu-jYzcprpO3KDKHaqzAJAuJSZN-Sr_I";
+
+    const headers_res = await fetchHeaders(cookie);
+
+    const headers = headers_res[0];
+
+    console.log(cookie);
 
     const json = [];
     const processedCompany = [];
@@ -66,22 +76,19 @@ const get_jobs = async (req, res) => {
     let keep = true;
 
     console.log("Job Title : " + job_title);
+    console.log("Job Position : " + jobposition);
     console.log("Job location : " + location);
 
     while (json.length < joblisting && keep && i < 500) {
+      // await wait(30000);
       const response = await axios.get(
-        `https://in.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/${job_title}-jobs-${location}?trk=homepage-jobseeker_suggested-search&start=${i}`,
-        {
-          headers: {
-            accept: "*/*",
-            "accept-language": "en-GB,en;q=0.9",
-          },
-        }
+        `https://linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/${job_title}-jobs-${location}?trk=homepage-jobseeker_suggested-search&start=${i}`,
+        {headers}
       );
       console.log("Making request for jobs  : " + i);
 
       //   const html = await response.text();
-      // console.log("HTML  :  " + response.data);
+      console.log("HTML  :  " + response.data);
 
       // const html = await response.text;
       const $ = cheerio.load(response.data);
@@ -128,7 +135,7 @@ const get_jobs = async (req, res) => {
           // console.log(location);
 
           if (json.length < joblisting) {
-            if (title.includes(jobposition)) {
+            // if (title.includes(jobposition)) {
               json.push({
                 jobid,
                 link,
@@ -137,7 +144,7 @@ const get_jobs = async (req, res) => {
                 location,
                 companyurl,
               });
-            }
+            // }
           }
         });
 
@@ -146,28 +153,33 @@ const get_jobs = async (req, res) => {
         console.log("Every Request : ");
         console.log(json);
       }
-      await wait(5000);
     }
 
     console.log("JSON");
     console.log(json);
 
-    const json_with_description = await jobdescription(json);
+    const json_with_description = await jobdescription(json , headers);
 
     console.log(json_with_description);
 
-    if (json_with_description && json_with_description.length) {
+    let r = [];
+    for(let i=0;i<json.length;i++){
+      r.push(json[i]);
+      r[i]["Description"] = "null";
+    }
+
+    if (json_with_description) {
       if (json_with_description.length > 0) {
         res.send({ companies: json_with_description, status: "success" });
       } else {
         res.send({
-          companies: [{ error: "No Profile Found." }],
+          companies:  r,
           status: "success",
         });
       }
     } else {
       res.send({
-        companies: [{ error: "No Job Listing Found." }],
+        companies: r,
         status: "error",
       });
     }

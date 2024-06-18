@@ -278,12 +278,13 @@ const get_profiles2 = async (req, res) => {
     if (array_with_company_size.length > 0) {
       for (let k = 0; k < array_with_company_size.length; k++) {
         const keyword = target_persona;
-        if (array_with_company_size[k]["id"]) {
+        if (array_with_company_size[k]["id"] && array_with_company_size[k]["companyurl"]) {
           const companyId = array_with_company_size[k]["id"];
           if (companyId != "null") {
             console.log("ID  :  " + companyId);
 
             for (let i = 0; i < 50; i += 10) {
+              await wait(30000);
               const res = await axios.get(
                 `https://www.linkedin.com/voyager/api/graphql?variables=(start:${i},origin:GLOBAL_SEARCH_HEADER,query:(keywords:${encodeURI(
                   keyword
@@ -348,7 +349,83 @@ const get_profiles2 = async (req, res) => {
                   }
                 }
               }
-              await wait(3000);
+            }
+          }
+        }
+      }
+    }
+    else{
+      for (let k = 0; k < job_array.length; k++) {
+        const keyword = target_persona;
+        if (job_array[k]["id"] && job_array[k]["companyurl"]) {
+          const companyId = job_array[k]["id"];
+          if (companyId != "null") {
+            console.log("ID  :  " + companyId);
+
+            for (let i = 0; i < 50; i += 10) {
+              await wait(30000);
+              const res = await axios.get(
+                `https://www.linkedin.com/voyager/api/graphql?variables=(start:${i},origin:GLOBAL_SEARCH_HEADER,query:(keywords:${encodeURI(
+                  keyword
+                )},flagshipSearchIntent:SEARCH_SRP,queryParameters:List((key:currentCompany,value:List(${companyId})),(key:resultType,value:List(PEOPLE))),includeFiltersInResponse:false))&queryId=voyagerSearchDashClusters.0d1dfeebfce461654ef1279a11e52846`,
+                {
+                  headers: {
+                    accept: "application/vnd.linkedin.normalized+json+2.1",
+                    "accept-language": "en-GB,en-US;q=0.9,en;q=0.8,pt;q=0.7",
+                    "csrf-token": csrf_token,
+                    cookie: cookies,
+                  },
+                }
+              );
+
+              const result = res.data.included;
+
+              if (result) {
+                console.log("Length : " + result.length);
+
+                if (result.length > 0) {
+                  for (let i = 0; i < result.length; i++) {
+                    // console.log("Result : " + JSON.stringify(result[i]));
+
+                    if (
+                      result[i].template &&
+                      result[i].title.text &&
+                      result[i].title.text != "LinkedIn Member" &&
+                      result[i].navigationUrl &&
+                      result[i].secondarySubtitle.text
+                    ) {
+                      console.log("Enter.");
+
+                      // if (
+                      //   result[i].title.text &&
+                      //   !result[i].title.text == "LinkedIn Member" &&
+                      //   result[i].navigationUrl &&
+                      //   result[i].secondarySubtitle.text
+                      // ) {
+                      const Name = result[i].title.text;
+                      const url = result[i].navigationUrl;
+                      const location = result[i].secondarySubtitle.text;
+                      console.log(
+                        "\n\nI  :  " + JSON.stringify(result[i].title.text)
+                      ) + "\n\n";
+                      console.log(
+                        "\n\nI  :  " + JSON.stringify(result[i].navigationUrl)
+                      ) + "\n\n";
+                      console.log(
+                        "\n\nI  :  " +
+                          JSON.stringify(result[i].secondarySubtitle.text)
+                      ) + "\n\n";
+                      profiles.push({
+                        Name: Name,
+                        ProfileUrl: url,
+                        location: location,
+                        commpanyUrl : job_array[k]["companyurl"],
+                      });
+                      // }
+                    }
+                  }
+                }
+              }
             }
           }
         }

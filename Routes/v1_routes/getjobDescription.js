@@ -9,7 +9,7 @@ function wait(milliseconds) {
   });
 }
 
-const jobdescription = async (jobUrl) => {
+const jobdescription = async (jobUrl , headers) => {
   try {
     // let jobUrl = [
     //     {
@@ -48,8 +48,9 @@ const jobdescription = async (jobUrl) => {
 
     for (let i = 0; i < jobUrl.length; i++) {
       if (jobUrl[i]["link"] && jobUrl[i]["link"] != "null") {
+        await wait(3000);
         const response = await axios.get(
-          `${jobUrl[i]["link"]}/?originalSubdomain=in`,
+          `${jobUrl[i]["link"]}`,
           {
             headers: {
               accept: "*/*",
@@ -57,6 +58,13 @@ const jobdescription = async (jobUrl) => {
             },
           }
         );
+
+        console.log("Description : " + response.status);
+
+        if(response.status == 429){
+          i++;
+          continue;
+        }
 
         if (response.data) {
           const $ = cheerio.load(response.data);
@@ -74,8 +82,6 @@ const jobdescription = async (jobUrl) => {
         }
 
         console.log("Processing Des : " + i);
-
-        await wait(20000);
       }
       else{
         jobUrl[i]["link"] = "null";
@@ -87,6 +93,7 @@ const jobdescription = async (jobUrl) => {
     return jobUrl;
   } catch (err) {
     console.log("Error in job description  :  " + err);
+    return [];
   }
 };
 

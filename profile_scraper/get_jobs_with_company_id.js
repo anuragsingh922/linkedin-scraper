@@ -59,6 +59,7 @@ const get_id = async (json, headers) => {
     let processedCompany = [];
 
     if (json.length) {
+      await wait(30000);
       for (let i = 0; i < json.length; i++) {
         const companyurl = json[i]?.companyurl;
 
@@ -91,7 +92,6 @@ const get_id = async (json, headers) => {
           } else {
             json[i].id = "null";
           }
-          await wait(5000);
         }
       }
     }
